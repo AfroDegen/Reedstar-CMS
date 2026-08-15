@@ -10,7 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -18,7 +19,30 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
 
       - name: Check Python syntax
-        run: python -m py_compile app.py config.py
+        run: |
+          python -m py_compile app.py config.py
+
+      - name: Start CMS
+        run: |
+          python app.py > cms.log 2>&1 &
+          sleep 3
+
+      - name: Test CMS
+        run: |
+          curl --fail http://127.0.0.1:8080/
+
+          curl --fail -X POST \
+            -d "title=Test Post" \
+            -d "body=Reedstar CMS is working." \
+            http://127.0.0.1:8080/new
+
+          curl --fail http://127.0.0.1:8080/
+
+      - name: Show CMS logs if test fails
+        if: failure()
+        run: |
+          cat cms.log
